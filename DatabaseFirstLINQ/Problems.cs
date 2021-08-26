@@ -2,6 +2,7 @@
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using DatabaseFirstLINQ.Models;
+using System.Collections.Generic;
 
 namespace DatabaseFirstLINQ
 {
@@ -16,8 +17,8 @@ namespace DatabaseFirstLINQ
         public void RunLINQQueries()
         {
             ProblemOne();
-            //ProblemTwo();
-            //ProblemThree();
+            ProblemTwo();
+            ProblemThree();
             //ProblemFour();
             //ProblemFive();
             //ProblemSix();
@@ -62,6 +63,11 @@ namespace DatabaseFirstLINQ
         {
             // Write a LINQ query that gets each product where the products price is greater than $150.
             // Then print the name and price of each product from the above query to the console.
+            var productsLessThan150 = _context.Products.ToList().Where(x => x.Price > 150);
+            foreach(var product in productsLessThan150)
+            {
+                Console.WriteLine($"{product.Name} {product.Price}");
+            }
 
         }
 
