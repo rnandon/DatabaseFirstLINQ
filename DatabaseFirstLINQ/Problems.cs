@@ -16,16 +16,16 @@ namespace DatabaseFirstLINQ
         }
         public void RunLINQQueries()
         {
-            ProblemOne();
-            ProblemTwo();
-            ProblemThree();
-            ProblemFour();
-            ProblemFive();
-            ProblemSix();
-            ProblemSeven();
-            ProblemEight();
-            ProblemNine();
-            ProblemTen();
+            //ProblemOne();
+            //ProblemTwo();
+            //ProblemThree();
+            //ProblemFour();
+            //ProblemFive();
+            //ProblemSix();
+            //ProblemSeven();
+            //ProblemEight();
+            //ProblemNine();
+            //ProblemTen();
             //ProblemEleven();
             //ProblemTwelve();
             //ProblemThirteen();
@@ -37,7 +37,8 @@ namespace DatabaseFirstLINQ
             //ProblemNineteen();
             //ProblemTwenty();
             // BonusOne();
-            BonusTwo();
+            //BonusTwo();
+            BonusThree();
         }
 
         // <><><><><><><><> R Actions (Read) <><><><><><><><><>
@@ -143,7 +144,7 @@ namespace DatabaseFirstLINQ
             // Write a LINQ query that retreives all of the products in the shopping cart of the user who has the email "oda@gmail.com" and returns the sum of all of the products prices.
             // HINT: End of query will be: .Select(sc => sc.Product.Price).Sum();
             // Then print the total of the shopping cart to the console.
-            var odaCart = _context.ShoppingCarts.Include(sc => sc.Product).Include(sc => sc.User).Where(sc => sc.User.Email == "oda@gmail.com").Select(sc => sc.Product.Price).Sum();
+            var odaCart = _context.ShoppingCarts.Include(sc => sc.Product).Include(sc => sc.User).Where(sc => sc.User.Email == "oda@gmail.com").Select(sc => (sc.Product.Price * (decimal)sc.Quantity)).Sum();
             Console.WriteLine("Sum of Oda's Cart: $" + odaCart);
 
         }
@@ -326,7 +327,7 @@ namespace DatabaseFirstLINQ
 
             foreach (var user in users)
             {
-                decimal cartTotal = _context.ShoppingCarts.Include(sc => sc.Product).Include(sc => sc.User).Where(ct => ct.User.Email == user.Email).Select(sc => sc.Product.Price).Sum();
+                decimal cartTotal = _context.ShoppingCarts.Include(sc => sc.Product).Include(sc => sc.User).Where(ct => ct.User.Email == user.Email).Select(sc => (sc.Product.Price * (decimal)sc.Quantity)).Sum();
 
                 Console.WriteLine(user.Email + "$" + cartTotal);
                 totals += cartTotal;
@@ -341,15 +342,293 @@ namespace DatabaseFirstLINQ
         {
             // 1. Create functionality for a user to sign in via the console
             // 2. If the user succesfully signs in
-            // a. Give them a menu where they perform the following actions within the console
-            // View the products in their shopping cart
-            // View all products in the Products table
-            // Add a product to the shopping cart (incrementing quantity if that product is already in their shopping cart)
-            // Remove a product from their shopping cart
-            // 3. If the user does not succesfully sing in
-            // a. Display "Invalid Email or Password"
-            // b. Re-prompt the user for credentials
+            //    a. Give them a menu where they perform the following actions within the console
+            //           View the products in their shopping cart
+            //           Remove a product from their shopping cart
+            //           View all products in the Products table
+            //           Add a product to the shopping cart (incrementing quantity if that product is already in their shopping cart)
+            // 3. If the user does not succesfully sign in
+            //    a. Display "Invalid Email or Password"
+            //    b. Re-prompt the user for credentials
 
+            bool loggedIn = false;
+            User customer;
+
+            while (!loggedIn)
+            {
+                Console.Write("Enter your email: ");
+                string user = Console.ReadLine();
+                Console.Write("\nEnter your password: ");
+                string pass = Console.ReadLine();
+
+                customer = _context.Users.Where(x => (x.Email == user && x.Password == pass)).FirstOrDefault();
+
+                if (customer != null)
+                {
+                    Console.WriteLine("Signed In!");
+                    loggedIn = true;
+                    
+                    string userSelection = "";
+                    while (userSelection != "0")
+                    {
+                        // Display menu
+                        userSelection = Menu();
+                        switch (userSelection)
+                        {
+                            case "1":
+                                SeeShoppingCart(customer);
+                                break;
+                            case "2":
+                                SeeProducts(customer);
+                                break;
+                            case "0":
+                                Console.WriteLine("Sign up for our hourly newsletter for discounts you'll never use or want!!!");
+                                break;
+                            default:
+                                break;
+                        }
+
+
+                        // Submenus - Cart, products
+                        // Cart: View, remove items
+                        // Products: View, add to cart
+
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Email or Password.");
+                }
+            }
+
+
+            
+            
+
+            // get response back, do something else with that choice
+
+            // Loop until the exit
+
+        }
+
+        private void SeeShoppingCart(User customer)
+        {
+
+            // Submenu
+            bool validSelection = false;
+            string userSelection = "";
+
+            while (!validSelection)
+            {
+                List<ShoppingCart> customerCart = _context.ShoppingCarts.Include(sc => sc.Product).Include(sc => sc.User).Where(sc => sc.User.Email == customer.Email).ToList();
+                decimal cartTotal = _context.ShoppingCarts.Include(sc => sc.Product).Include(sc => sc.User).Where(sc => sc.User.Email == customer.Email).Select(sc => (sc.Product.Price * (decimal)sc.Quantity)).Sum();
+
+                Console.WriteLine("Here is your shopping cart: ");
+                foreach (var product in customerCart)
+                {
+                    Console.WriteLine($"\n\tProduct: {product.Product.Name} Price: {product.Product.Price} Quantity: {product.Quantity}");
+                }
+                Console.WriteLine($"Current Total: {cartTotal}");
+                
+                // Print options
+                Console.WriteLine("\t1) Back to main menu\n\t2) Remove item from cart");
+                // Wait for user input and validate
+                userSelection = Console.ReadLine();
+                validSelection = ValidateSelection(userSelection, "12");
+                if (validSelection)
+                {
+                    if (userSelection == "1")
+                    {
+                        //Back
+                        return;
+                    }
+                    else if (userSelection == "2")
+                    {
+                        //Remove from cart
+                        RemoveFromCart(customerCart);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Invalid selection. Please select a valid option from the list below:");
+                }
+            }
+        }
+
+        private void RemoveFromCart(List<ShoppingCart> cart)
+        {
+            string userSelection = "";
+            while (userSelection != "0")
+            {
+                // Build out the menu
+                List<string> validOptions = new List<string>() { "0" };
+                for (int i = 1; i <= cart.Count; i++)
+                {
+                    validOptions.Add(i.ToString());
+                }
+                // Display menu
+                for (int i = 0; i < cart.Count; i++)
+                {
+                    Console.WriteLine($"\t{i + 1}) {cart[i].Product.Name}");
+                }
+                Console.WriteLine("\t0) Return to shopping cart");
+                // Get the input
+                userSelection = Console.ReadLine();
+
+                // Validate
+                bool validSelection = validOptions.Contains(userSelection);
+
+                // if Valid selection Remove from cart
+                if (validSelection)
+                {
+                    if (userSelection == "0")
+                    {
+                        // Exit function, go back to cart
+                        return;
+                    }
+                    else
+                    {
+                        // remove item from cart
+                        int itemIndex = Int16.Parse(userSelection) - 1;
+                        ShoppingCart itemToRemove = cart[itemIndex];
+                        _context.ShoppingCarts.Remove(itemToRemove);
+                        _context.SaveChanges();
+                        return;
+                    }
+                }
+            }
+            return;
+        }
+
+        private void SeeProducts(User customer)
+        {
+            List<Product> allProducts = _context.Products.ToList();
+            // menu
+            bool validSelection = false;
+            string userSelection = "";
+
+            while (!validSelection)
+            {
+                Console.WriteLine("These products are avaiable: ");
+                foreach (var product in _context.Products.ToList())
+                {
+                    Console.WriteLine($"\n\tProduct: {product.Name} Price: {product.Price}");
+                }
+
+                // Print options
+                Console.WriteLine("\t1) Back to main menu\n\t2) Add item to cart");
+                // Wait for user input and validate
+                userSelection = Console.ReadLine();
+                validSelection = ValidateSelection(userSelection, "12");
+                if (validSelection)
+                {
+                    if (userSelection == "1")
+                    {
+                        //Back
+                        return;
+                    }
+                    else if (userSelection == "2")
+                    {
+                        //Remove from cart
+                        AddToCart(customer);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Invalid selection. Please select a valid option from the list below:");
+                }
+            }
+        }
+
+        private void AddToCart(User customer)
+        {
+            string userSelection = "";
+            while (userSelection != "0")
+            {
+                // Build out the menu
+                List<Product> allProducts = _context.Products.ToList();
+                List<string> validOptions = new List<string>() { "0" };
+                for (int i = 1; i <= allProducts.Count; i++)
+                {
+                    validOptions.Add(i.ToString());
+                }
+                // Display menu
+                for (int i = 0; i < allProducts.Count; i++)
+                {
+                    Console.WriteLine($"\t{i + 1}) {allProducts[i].Name}");
+                }
+                Console.WriteLine("\t0) Return to catalogue");
+                // Get the input
+                userSelection = Console.ReadLine();
+
+                // Validate
+                bool validSelection = validOptions.Contains(userSelection);
+
+                // if Valid selection Remove from cart
+                if (validSelection)
+                {
+                    if (userSelection == "0")
+                    {
+                        // Exit function, go back to cart
+                        return;
+                    }
+                    else
+                    {
+                        // remove item from cart
+                        int itemIndex = Int16.Parse(userSelection) - 1;
+                        Product itemToAdd = allProducts[itemIndex];
+                        ShoppingCart newCart = new ShoppingCart()
+                        {
+                            UserId = customer.Id,
+                            ProductId = itemToAdd.Id,
+                            Quantity = 1
+                        };
+
+
+                        _context.ShoppingCarts.Add(newCart);
+                        _context.SaveChanges();
+                        return;
+                    }
+                }
+            }
+            return;
+        }
+
+        private string Menu()
+        {
+            bool validSelection = false;
+            string userSelection = "";
+            Console.WriteLine("Welcome to the store!\nPlease select an option below:");
+
+            while (!validSelection)
+            {
+                // Print options
+                Console.WriteLine("\t1) See shopping cart\n\t2) See products\n\n\t0) Exit");
+                // Wait for user input and validate
+                userSelection = Console.ReadLine();
+                validSelection = ValidateSelection(userSelection, "120");
+                if (validSelection)
+                {
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("Invalid selection. Please select a valid option from the list below:");
+                }
+            }
+            return userSelection;
+        }
+
+        private bool ValidateSelection(string selection, string options)
+        {
+            if (options.Contains(selection) && selection.Length == 1)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
     }
